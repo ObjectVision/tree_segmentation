@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Gemeente polygons from the PDOK bestuurlijke-gebieden WFS.
 
 Ported verbatim in behaviour from deepforest_province.py:74-97, including the

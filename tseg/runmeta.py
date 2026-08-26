@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Persist the profile a run actually used.
 
 Tile geometry must not be re-derived from profiles/*.yaml after the fact. If

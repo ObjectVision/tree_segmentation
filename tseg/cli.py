@@ -1,10 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """tseg command line.
 
     tseg info
     tseg detect  --profile trees --codes GM0983 --out output/trees
     tseg pand    --profile riet  --codes GM0983 --out output/riet --limit 200
     tseg review  --profile trees --out output/trees
-    tseg export  --profile trees --out output/trees
+    tseg mine    --profile riet  --out output/riet --label riet
+    tseg export  --profile trees --out output/trees [--no-images]
     tseg train   --profile trees --out output/trees
     tseg merge   --profile trees --out output/trees --format gpkg
 """
@@ -97,9 +100,23 @@ def parse_args(argv=None):
     p.add_argument("--port", type=int, default=None)
     p.add_argument("--share", action="store_true")
 
+    p = _common(sub.add_parser("mine",
+                               help="rank unreviewed chips by similarity to "
+                                    "confirmed positives (rare-class hunting)"))
+    p.add_argument("--label", help="mine for this class (default: any accepted)")
+    p.add_argument("--like", help="comma-separated pand ids / uids to search from")
+    p.add_argument("--limit", type=int, default=200, help="candidates to rank")
+    p.add_argument("--no-promote", action="store_true",
+                   help="rank only; do not move them up the review queue")
+
     p = _common(sub.add_parser("export", help="review store -> COCO / chip folders"))
     p.add_argument("--allow-incomplete", action="store_true",
                    help="export tiles that still have unreviewed candidates")
+    p.add_argument("--no-images", action="store_true",
+                   help="write annotations and a regeneration manifest but no "
+                        "image files (the shape a public release takes)")
+    p.add_argument("--regenerate", action="store_true",
+                   help="rebuild the image files a --no-images export omitted")
 
     p = _common(sub.add_parser("train", help="finetune one round"))
     p.add_argument("--round", type=int, default=None)
@@ -186,18 +203,45 @@ def cmd_review(args):
     launch(profile, args.out, share=args.share, port=args.port)
 
 
+def cmd_mine(args):
+    from tseg import device
+    from tseg.models import get_backend
+    from tseg.review.mine import rank
+
+    profile = _profile_from(args, from_run=True)
+    kwargs = dict(classes=profile.model.classes,
+                  resolution=profile.model.resolution)
+    if profile.model.backbone:
+        kwargs["backbone"] = profile.model.backbone
+    backend = get_backend("classifier", **kwargs)
+    backend.load(device=args.device or device.resolve())
+
+    like = [v.strip() for v in args.like.split(",")] if args.like else None
+    with _store_for(profile, args.out) as store:
+        ranked = rank(store, backend, label=args.label, like=like,
+                      limit=args.limit, promote=not args.no_promote)
+    for row, sim in ranked[:20]:
+        ident = (row["uid"] or "").split(":")[-1]
+        print(f"  {sim:.3f}  {ident}")
+    if len(ranked) > 20:
+        print(f"  ... {len(ranked) - 20} more; run 'tseg review' to work through them")
+
+
 def cmd_export(args):
-    from tseg.review.export import export_chips, export_coco
+    from tseg.review.export import export_chips, export_coco, regenerate_images
 
     profile = _profile_from(args, from_run=True)
     out = Path(args.out)
     with _store_for(profile, out) as store:
         target = out / "rounds" / str(store.max_round()) / "dataset"
-        if profile.model.backend == "classifier":
+        if args.regenerate:
+            regenerate_images(target, profile)
+        elif profile.model.backend == "classifier":
             export_chips(store, target, classes=profile.model.classes)
         else:
             export_coco(store, profile, target, classes=profile.model.classes,
-                        require_complete_tiles=not args.allow_incomplete)
+                        require_complete_tiles=not args.allow_incomplete,
+                        write_images=not args.no_images)
 
 
 def cmd_train(args):
@@ -225,7 +269,7 @@ def cmd_merge(args):
     ext = {"gpkg": "gpkg", "fgb": "fgb", "geojson": "geojson"}[args.format]
     stem = args.name or f"{profile.name}_{profile.model.classes[0]}"
     merge(cache, out / f"{stem}.{ext}", fmt=args.format, shapes=shapes,
-          dedupe_iou=iou, layer_name=profile.name)
+          dedupe_iou=iou, layer_name=profile.name, profile=profile)
 
 
 COMMANDS = {
@@ -233,6 +277,7 @@ COMMANDS = {
     "detect": cmd_detect,
     "pand": cmd_pand,
     "review": cmd_review,
+    "mine": cmd_mine,
     "export": cmd_export,
     "train": cmd_train,
     "merge": cmd_merge,

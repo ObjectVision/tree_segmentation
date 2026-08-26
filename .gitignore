@@ -2,7 +2,18 @@ output/
 __pycache__/
 lightning_logs/
 .venv*/
+*.egg-info/
+
+# Round artifacts: checkpoints and exported chips. Imagery is never committed --
+# releases ship annotations plus a regeneration manifest (see MODEL_CARD.md).
 data/rounds/
 *.ckpt
 *.pth
-*.egg-info/
+*.pt
+*.jpg
+*.jpeg
+
+# Vendored upstream clones, kept out of the tree so their licences stay theirs.
+# pycrown is GPL-3.0; see CONTRIBUTING.md for how to obtain either.
+pycrown/
+urban-tree/

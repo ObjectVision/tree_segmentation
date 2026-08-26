@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """PDOK WMS GetMap client.
 
 Ported from ``deepforest_province.py:120-142``. Two things changed on the way:

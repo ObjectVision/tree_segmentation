@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """tseg - finetunable aerial-object segmentation over PDOK imagery.
 
 Two operating modes:

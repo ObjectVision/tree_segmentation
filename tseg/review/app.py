@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Gradio triage UI -- the visual half of the feedback loop.
 
 Two tabs, because accept/reject alone cannot teach a model to find things it

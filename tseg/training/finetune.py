@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """The finetune half of the loop.
 
     round 0   pre-label with SAM 3 (or DeepForest)  -> store
@@ -140,10 +142,11 @@ def _train_classifier(profile, store, rdir, device_name, epochs, resume,
             f"classes -- review more panden before training"
         )
 
-    backend = get_backend("classifier", backbone=profile.model.weights
-                          or "vit_small_patch14_dinov2.lvd142m",
-                          classes=profile.model.classes,
-                          resolution=profile.model.resolution)
+    kwargs = dict(classes=profile.model.classes,
+                  resolution=profile.model.resolution)
+    if profile.model.backbone:
+        kwargs["backbone"] = profile.model.backbone
+    backend = get_backend("classifier", **kwargs)
     backend.load(device=device_name)
 
     ckpt = previous_checkpoint(out_root, round_no) if resume else None

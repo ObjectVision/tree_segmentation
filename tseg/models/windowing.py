@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Sliding-window inference for backends with a fixed input size.
 
 DeepForest has predict_tile built in; RF-DETR and SAM 3 do not, so a 2200 px

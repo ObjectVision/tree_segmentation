@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """BAG pand (building footprint) access and per-pand image chips.
 
 Endpoint and attribute names verified live against

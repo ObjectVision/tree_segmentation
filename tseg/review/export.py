@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Review store -> COCO instance-segmentation dataset.
 
 One subtlety decides whether the training data is honest. A tile is only
@@ -23,6 +25,8 @@ import numpy as np
 from PIL import Image
 from shapely.geometry import box as shp_box
 
+from tseg import attribution, runmeta
+from tseg.config import EPSG
 from tseg.imagery.grid import Tile
 from tseg.imagery.raster import bounds_transform
 from tseg.imagery.wms import WMSClient
@@ -42,8 +46,15 @@ def _px_ring(poly, transform):
 
 def export_coco(store: ReviewStore, profile, out_dir, classes=None,
                 geom_field: str = "mask", require_complete_tiles: bool = True,
-                wms=None, progress=True):
-    """Write train/ and valid/ COCO splits from the reviewed store."""
+                wms=None, progress=True, write_images: bool = True):
+    """Write train/ and valid/ COCO splits from the reviewed store.
+
+    write_images=False emits annotations plus a regeneration manifest and no
+    image files. That is the shape a public release takes: PDOK imagery is
+    CC-BY so it *could* be redistributed, but a manifest is smaller, stays
+    current, and keeps the imagery licence question with PDOK where it belongs.
+    Rebuild with ``tseg export --regenerate``.
+    """
     out_dir = Path(out_dir)
     classes = list(classes or profile.model.classes)
     wms = wms or WMSClient(profile.imagery)
@@ -63,6 +74,7 @@ def export_coco(store: ReviewStore, profile, out_dir, classes=None,
 
     skipped = 0
     manifest = {}
+    tile_manifest: dict[str, list] = {}
     for split, tiles in by_split.items():
         images, annotations = [], []
         img_id, ann_id = 1, 1
@@ -88,15 +100,22 @@ def export_coco(store: ReviewStore, profile, out_dir, classes=None,
             # would present reviewed objects as unlabelled background.
             xmin, ymin, xmax, ymax = tile.core
 
-            img = wms.fetch_bbox(xmin, ymin, xmax, ymax)
-            h, w = img.shape[:2]
+            # Pixel size is a property of the tile and the resolution, so it
+            # is known without fetching anything.
+            w = int(round((xmax - xmin) / profile.imagery.res))
+            h = int(round((ymax - ymin) / profile.imagery.res))
             transform = bounds_transform(xmin, ymin, xmax, ymax, w, h)
             core_box = shp_box(xmin, ymin, xmax, ymax)
 
             fname = f"{tile_key}.jpg"
-            Image.fromarray(img).save(split_dir / fname, quality=92)
+            if write_images:
+                img = wms.fetch_bbox(xmin, ymin, xmax, ymax)
+                h, w = img.shape[:2]
+                transform = bounds_transform(xmin, ymin, xmax, ymax, w, h)
+                Image.fromarray(img).save(split_dir / fname, quality=92)
             images.append({"id": img_id, "file_name": fname,
                            "width": int(w), "height": int(h)})
+            tile_manifest.setdefault(split, []).append(tile_key)
 
             for row in rows:
                 # Rejects contribute the image but no annotation: that is
@@ -140,7 +159,9 @@ def export_coco(store: ReviewStore, profile, out_dir, classes=None,
             img_id += 1
 
         coco = {
-            "info": {"description": f"tseg {profile.name} {split}"},
+            "info": {"description": f"tseg {profile.name} {split}",
+                     "attribution": attribution.SHORT,
+                     "license_url": attribution.LICENSE_URL},
             "licenses": [],
             "images": images,
             "annotations": annotations,
@@ -151,12 +172,76 @@ def export_coco(store: ReviewStore, profile, out_dir, classes=None,
             json.dumps(coco), encoding="utf-8")
         manifest[split] = {"images": len(images), "annotations": len(annotations)}
 
+    attribution.write_notice(out_dir)
+    _write_regenerate(out_dir, profile, tile_manifest, write_images)
+
     if skipped:
         print(f"skipped {skipped} tile(s) with unreviewed candidates -- finish "
               f"reviewing them or pass --allow-incomplete to include them "
               f"(they will train the model that unreviewed objects are background)")
+    if not write_images:
+        print("no images written; rebuild them with 'tseg export --regenerate'")
     print(json.dumps(manifest, indent=2))
     return manifest
+
+
+def _write_regenerate(out_dir, profile, tile_manifest, images_present):
+    """Everything needed to rebuild the image files from PDOK."""
+    (Path(out_dir) / "regenerate.json").write_text(json.dumps({
+        "note": "Rebuild the image files with: tseg export --regenerate "
+                "--out <dir>. Imagery is not redistributed here; it is fetched "
+                "from PDOK under CC-BY-4.0.",
+        "images_present": bool(images_present),
+        "attribution": attribution.SHORT,
+        "wms": profile.imagery.wms,
+        "layer": profile.imagery.layer,
+        "res_m": profile.imagery.res,
+        "format": profile.imagery.fmt,
+        "tile_m": profile.grid.tile_m,
+        "overlap_m": profile.grid.overlap_m,
+        "crs": f"EPSG:{EPSG}",
+        "tiles": tile_manifest,
+    }, indent=2), encoding="utf-8")
+
+
+def regenerate_images(out_dir, profile=None, progress=True):
+    """Rebuild the image files a --no-images export left out.
+
+    Reads regenerate.json, refetches each tile core from PDOK at the recorded
+    layer and resolution, and writes it under the split it belongs to.
+    """
+    out_dir = Path(out_dir)
+    spec = json.loads((out_dir / "regenerate.json").read_text(encoding="utf-8"))
+
+    if profile is None:
+        profile = runmeta.load(out_dir.parent.parent.parent, fallback=None)
+    profile.imagery.layer = spec["layer"]
+    profile.imagery.res = spec["res_m"]
+    profile.grid.tile_m = spec["tile_m"]
+    profile.grid.overlap_m = spec["overlap_m"]
+    wms = WMSClient(profile.imagery)
+
+    n = 0
+    for split, keys in spec["tiles"].items():
+        split_dir = out_dir / split
+        split_dir.mkdir(parents=True, exist_ok=True)
+        it = keys
+        if progress:
+            import tqdm
+
+            it = tqdm.tqdm(keys, desc=f"regen {split}")
+        for tile_key in it:
+            dst = split_dir / f"{tile_key}.jpg"
+            if dst.exists():
+                continue
+            x, y = (float(v) for v in tile_key.split("_"))
+            tile = Tile(x, y, profile.grid.tile_m, profile.grid.overlap_m)
+            xmin, ymin, xmax, ymax = tile.core
+            img = wms.fetch_bbox(xmin, ymin, xmax, ymax)
+            Image.fromarray(img).save(dst, quality=92)
+            n += 1
+    print(f"regenerated {n} image(s) in {out_dir}")
+    return n
 
 
 def export_chips(store: ReviewStore, out_dir, classes=None):

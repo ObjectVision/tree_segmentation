@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Greedy IoU NMS, used both inside a tile and globally on the merged layer.
 
 Cross-tile duplicates are the reason this exists. The original 500 m tiles do

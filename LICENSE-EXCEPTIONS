@@ -1,0 +1,44 @@
+tseg — additional permissions under GNU GPL version 3 section 7
+===============================================================
+
+tseg is licensed under the GNU General Public License version 3 or later
+(see LICENSE). The following additional permission applies.
+
+
+SAM 3 linking exception
+-----------------------
+
+As an additional permission under section 7 of the GNU General Public
+License version 3, the copyright holders of tseg give you permission to
+combine tseg with software released under Meta Platforms' SAM License
+("SAM 3", <https://github.com/facebookresearch/sam3>), and to convey the
+resulting work. You must comply with the GNU GPL version 3 in all
+respects for all of the code used other than the SAM 3 components.
+
+Why this exists
+---------------
+
+tseg ships an optional backend, tseg/models/sam3_backend.py, whose only
+purpose is to call SAM 3. SAM 3 is distributed under a custom licence
+that imposes field-of-use restrictions, so it is not GPL-compatible and
+is not an open-source licence under the Open Source Definition.
+
+Without this permission, distributing a module written specifically to
+link non-free code would be, at best, a contested reading of the GPL.
+The exception removes the ambiguity rather than relying on anyone's
+interpretation of it.
+
+Scope
+-----
+
+This permission covers linking only. It does not relicense SAM 3, does
+not extend to any other non-GPL-compatible dependency, and does not
+apply to any part of tseg other than what is required to combine the two.
+
+Nothing in tseg depends on SAM 3 by default. It is an opt-in extra
+(`pip install tseg[sam3]`), every core workflow runs without it, and the
+licence sweep in CI fails if it ever becomes a required dependency.
+
+If you would rather avoid the question entirely, do not install the
+`sam3` extra. Tree bootstrapping uses DeepForest (MIT) and rare-class
+mining uses DINOv2 embeddings (Apache-2.0); both are fully open source.

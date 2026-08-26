@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Pixel <-> RD (EPSG:28992) conversion via a rasterio affine."""
 
 from __future__ import annotations

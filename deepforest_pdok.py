@@ -1,10 +1,13 @@
 """Test DeepForest on PDOK 25cm aerial RGB (Actueel_ortho25 WMS).
 
 DeepForest = deep-learning individual-tree-crown *detection* (RetinaNet),
-pretrained on NEON airborne RGB. It returns bounding boxes per tree, unlike
-DetecTree (pixel tree/non-tree) or PyCrown (CHM crown polygons).
+pretrained on NEON airborne RGB. It returns bounding boxes per tree.
 
-Pipeline (mirrors detectree_pdok.py):
+Kept as the quickest single-tile visual check. For anything larger use
+`tseg detect`, which shares this WMS/grid code and adds masks, circles,
+resumable caching and a training loop.
+
+Pipeline:
   1. WMS GetMap JPEG -> georeferenced GeoTIFF (EPSG:28992, 25 cm).
   2. DeepForest pretrained model -> per-tree bounding boxes via predict_tile.
   3. Export boxes as GeoJSON (RD New) + a preview PNG with boxes drawn.

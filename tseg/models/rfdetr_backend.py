@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """RF-DETR-Seg backend -- the finetune target.
 
 Apache-2.0, DINOv2 backbone, instance-mask head. This is the model the review
@@ -13,7 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from tseg.models.base import BaseBackend
+from tseg.models.base import BaseBackend, require
 from tseg.models.windowing import run_windowed
 from tseg.records import Detection
 
@@ -52,8 +54,8 @@ class RFDETRBackend(BaseBackend):
         self.model = None
 
     # ------------------------------------------------------------------ load
-    def _class_name(self, cls_name: str) -> str:
-        import rfdetr
+    def _class_name(self, cls_name: str):
+        rfdetr = require("rfdetr", "rfdetr")
 
         try:
             return getattr(rfdetr, cls_name)

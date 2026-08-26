@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Streaming vector writers.
 
 The original merge built every feature from all 6816 tiles into one Python
@@ -18,6 +20,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from tseg import attribution
 from tseg.config import EPSG
 
 SHAPE_COLUMNS = ("circle", "rect", "bbox", "mask")
@@ -75,9 +78,10 @@ class OGRWriter(_BaseWriter):
     """GeoPackage / FlatGeobuf via pyogrio, appending in batches."""
 
     def __init__(self, path, shapes=("circle", "rect"), driver="GPKG",
-                 layer_name="features"):
+                 layer_name="features", profile=None):
         super().__init__(path, shapes, layer_name)
         self.driver = driver
+        self.profile = profile
         self._buf = {s: [] for s in self.shapes}
         self._started = set()
 
@@ -90,23 +94,34 @@ class OGRWriter(_BaseWriter):
             self.flush()
 
     def flush(self):
+        # pyogrio directly rather than GeoDataFrame.to_file: only the former
+        # exposes dataset_metadata / layer_metadata, which is where the CC-BY
+        # attribution has to live so it travels inside the file itself.
         import geopandas as gpd
+        import pyogrio
 
+        md = attribution.metadata(self.profile)
         for s, rows in self._buf.items():
             if not rows:
                 continue
             gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs=f"EPSG:{EPSG}")
             layer = f"{self.layer_name}_{s}"
-            gdf.to_file(
-                self.path, layer=layer, driver=self.driver,
-                mode="a" if layer in self._started else "w",
-                engine="pyogrio",
+            first = layer not in self._started
+            kwargs = {}
+            if first and self.driver == "GPKG":
+                # GDAL rejects metadata on append, so it goes on layer creation.
+                kwargs = {"dataset_metadata": md,
+                          "layer_metadata": dict(md, SHAPE=s)}
+            pyogrio.write_dataframe(
+                gdf, self.path, layer=layer, driver=self.driver,
+                append=not first, **kwargs,
             )
             self._started.add(layer)
             rows.clear()
 
     def close(self):
         self.flush()
+        attribution.write_notice(self.path.parent)
 
 
 class GeoJSONWriter(_BaseWriter):
@@ -118,14 +133,20 @@ class GeoJSONWriter(_BaseWriter):
     a FeatureCollection with a named CRS.
     """
 
-    def __init__(self, path, shapes=("circle",), layer_name="features"):
+    def __init__(self, path, shapes=("circle",), layer_name="features",
+                 profile=None):
         super().__init__(path, shapes, layer_name)
         self.geom_field = self.shapes[0]
+        self.profile = profile
         self._fh = self.path.open("w", encoding="utf-8")
+        # Structure deliberately unchanged from the original merge, which the
+        # GeoDMS FSS store reads -- attribution is added as an extra member,
+        # which GeoJSON readers ignore, rather than by reshaping the document.
         self._fh.write(
             '{"type": "FeatureCollection", '
             '"crs": {"type": "name", "properties": {"name": "EPSG:%d"}}, '
-            '"name": %s, "features": [' % (EPSG, json.dumps(layer_name))
+            '"attribution": %s, "name": %s, "features": ['
+            % (EPSG, json.dumps(attribution.SHORT), json.dumps(layer_name))
         )
         self._first = True
 
@@ -141,15 +162,19 @@ class GeoJSONWriter(_BaseWriter):
         if not self._fh.closed:
             self._fh.write("]}")
             self._fh.close()
+            attribution.write_notice(self.path.parent)
 
 
 def open_writer(path, fmt: str = "gpkg", shapes=("circle", "rect"),
-                layer_name: str = "features"):
+                layer_name: str = "features", profile=None):
     fmt = fmt.lower()
     if fmt == "gpkg":
-        return OGRWriter(path, shapes, driver="GPKG", layer_name=layer_name)
+        return OGRWriter(path, shapes, driver="GPKG", layer_name=layer_name,
+                         profile=profile)
     if fmt in ("fgb", "flatgeobuf"):
-        return OGRWriter(path, shapes, driver="FlatGeobuf", layer_name=layer_name)
+        return OGRWriter(path, shapes, driver="FlatGeobuf",
+                         layer_name=layer_name, profile=profile)
     if fmt == "geojson":
-        return GeoJSONWriter(path, shapes, layer_name=layer_name)
+        return GeoJSONWriter(path, shapes, layer_name=layer_name,
+                             profile=profile)
     raise ValueError(f"format must be gpkg | fgb | geojson, got {fmt!r}")

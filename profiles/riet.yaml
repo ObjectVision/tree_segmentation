@@ -15,7 +15,8 @@ grid:
 
 model:
   backend: classifier
-  weights: vit_small_patch14_dinov2.lvd142m   # frozen backbone + linear head
+  backbone: vit_small_patch14_dinov2.lvd142m  # frozen; linear head on top
+  weights: null                               # set to a trained head.pt to resume
   classes: [overig, riet, partial]
   score_thresh: 0.5
   resolution: 224

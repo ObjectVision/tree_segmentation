@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """The two run modes, sharing everything except what they iterate over.
 
   run_tiles   grid an AOI, detect per tile      -> Features
@@ -119,6 +121,8 @@ def _backend(profile, device_name):
                           score_thresh=m.score_thresh)
         elif m.backend == "classifier":
             kwargs = dict(classes=m.classes, resolution=m.resolution)
+            if m.backbone:
+                kwargs["backbone"] = m.backbone
 
         be = get_backend(m.backend, **kwargs)
         be.load(weights=m.weights, device=device_name)
@@ -283,7 +287,7 @@ def run_panden(profile, aoi, out_root, max_panden: int = 0,
 
 
 def merge(cache, out_path, fmt: str = "gpkg", shapes=("circle", "rect"),
-          dedupe_iou: float = 0.0, layer_name: str = "features"):
+          dedupe_iou: float = 0.0, layer_name: str = "features", profile=None):
     """Stream every cached feature into one vector file.
 
     Never builds the full list in memory unless dedupe is on -- the original
@@ -293,7 +297,7 @@ def merge(cache, out_path, fmt: str = "gpkg", shapes=("circle", "rect"),
     from tseg.geometry.dedupe import nms
     from tseg.io.writer import open_writer
 
-    with open_writer(out_path, fmt, shapes, layer_name) as w:
+    with open_writer(out_path, fmt, shapes, layer_name, profile=profile) as w:
         if dedupe_iou > 0:
             feats = nms(list(cache.iter_all()), dedupe_iou)
             w.extend(feats)

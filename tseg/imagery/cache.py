@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Resumable per-tile result cache.
 
 Same contract as the original: one file per tile, named by its RD grid corner,

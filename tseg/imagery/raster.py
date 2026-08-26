@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """GeoTIFF write + px<->RD helpers. Ported from deepforest_province.py:145-151."""
 
 from __future__ import annotations

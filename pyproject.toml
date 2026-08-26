@@ -2,7 +2,20 @@
 name = "tseg"
 version = "0.1.0"
 description = "Finetunable aerial-object segmentation over PDOK imagery (trees, roof material)"
+readme = "README.md"
 requires-python = ">=3.10"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "LICENSE-EXCEPTIONS", "NOTICE"]
+keywords = ["remote-sensing", "segmentation", "pdok", "bag", "geospatial"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+# Core stays permissive: everything here is Apache-2.0, MIT or BSD. The
+# licence sweep in tests/test_licences.py fails if that changes.
 dependencies = [
     "numpy",
     "pillow",
@@ -17,20 +30,37 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Backends are optional so the core package installs in both venvs.
-deepforest = ["deepforest>=2.1.0"]
-rfdetr = ["rfdetr", "supervision"]
+deepforest = ["deepforest>=2.1.0"]          # MIT
+rfdetr = ["rfdetr>=1.4", "supervision"]     # Apache-2.0
+classifier = ["timm"]                       # Apache-2.0, DINOv2 weights Apache-2.0
+review = ["gradio>=4"]                      # Apache-2.0
+train = ["pycocotools"]                     # BSD-2-Clause
+test = ["pytest"]
+
+# NOT open source. Meta's SAM License carries field-of-use restrictions, so it
+# is not OSI-approved and not GPL-compatible; tseg links to it only under the
+# GPL-3.0 section 7 permission in LICENSE-EXCEPTIONS. Nothing depends on it --
+# use `deepforest` to bootstrap trees and `tseg mine` for rare classes instead.
 sam3 = ["segment-geospatial", "transformers"]
-classifier = ["timm", "scikit-learn"]
-review = ["gradio>=4"]
-train = ["pycocotools"]
+
+# Everything except sam3.
+all = [
+    "deepforest>=2.1.0", "rfdetr>=1.4", "supervision", "timm",
+    "gradio>=4", "pycocotools", "pytest",
+]
+
+[project.urls]
+Source = "https://github.com/ObjectVision/tseg"
 
 [project.scripts]
 tseg = "tseg.cli:main"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["tseg*"]
+
+[tool.setuptools.package-data]
+tseg = ["../profiles/*.yaml"]

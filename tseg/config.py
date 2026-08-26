@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Typed config with YAML profiles (``profiles/trees.yaml``, ``profiles/riet.yaml``).
 
 A profile is the whole run description: which imagery, which grid, which
@@ -63,7 +65,11 @@ class GridCfg:
 @dataclass
 class ModelCfg:
     backend: str = "deepforest"          # deepforest | rfdetr | sam3 | classifier
-    weights: str | None = None           # None -> backend default / pretrained
+    # weights is a TRAINED checkpoint (a previous round's output). backbone is
+    # the pretrained architecture to build on. Conflating them silently feeds a
+    # timm model name to torch.load, which fails far from the cause.
+    weights: str | None = None
+    backbone: str | None = None          # classifier only; None -> DINOv2 ViT-S/14
     classes: list[str] = field(default_factory=lambda: ["tree"])
     score_thresh: float = 0.2
     nms_iou: float = 0.15                # within-tile NMS

@@ -1,0 +1,80 @@
+tseg
+Copyright (C) 2026 Object Vision B.V. and tseg contributors
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version. See LICENSE, and LICENSE-EXCEPTIONS for an
+additional permission under GPL-3.0 section 7.
+
+
+================================================================================
+Imagery and geodata
+================================================================================
+
+Outputs of this software are derived from open data published by PDOK
+(Publieke Dienstverlening Op de Kaart, <https://www.pdok.nl>).
+
+    Luchtfoto Beeldmateriaal (Actueel_ortho25, Actueel_orthoHR)
+    Basisregistratie Adressen en Gebouwen (BAG) — bag:pand
+    Kadaster brk-bestuurlijke-gebieden — Gemeentegebied
+
+    (c) PDOK / Kadaster / Beeldmateriaal Nederland
+    Licensed under Creative Commons Attribution 4.0 (CC-BY 4.0)
+    <https://creativecommons.org/licenses/by/4.0/>
+
+CC-BY 4.0 requires attribution when redistributing these data or works
+derived from them. tseg writes this notice alongside every export and
+embeds it in GeoPackage layer metadata, but the obligation follows the
+data: keep the attribution with anything you publish downstream.
+
+
+================================================================================
+Third-party components
+================================================================================
+
+RF-DETR — Roboflow
+    Apache License 2.0
+    <https://github.com/roboflow/rf-detr>
+    Used as the primary detection/segmentation backend. All RF-DETR
+    segmentation checkpoints (Nano through 2XLarge) are Apache-2.0.
+    Note: the RF-DETR *detection* XLarge and 2XLarge checkpoints are
+    released under Platform Model License 1.0 and are NOT used here.
+
+DINOv2 — Meta Platforms, Inc.
+    Apache License 2.0 (relicensed from CC-BY-NC-4.0 in August 2023)
+    <https://github.com/facebookresearch/dinov2>
+    Backbone for the chip classifier and for RF-DETR.
+
+PyTorch Image Models (timm) — Ross Wightman
+    Apache License 2.0
+    <https://github.com/huggingface/pytorch-image-models>
+
+DeepForest — Weecology / University of Florida
+    MIT License
+    <https://github.com/weecology/DeepForest>
+    Package and the weecology/deepforest-tree weights are both MIT.
+    Used as the frozen tree baseline and as the open-source bootstrap
+    for round 0.
+
+urban-tree — Copyright (c) 2022 easz@github
+    MIT License
+    <https://github.com/easz/urban-tree>
+    tseg/geometry/shapes.py contains calc_rectangle_bbox() and
+    calc_circle_bbox(), ported from urbantree/deepforest/detection.py
+    (lines 55-111) with modifications. The MIT notice above is retained
+    as required.
+
+
+================================================================================
+Optional components, not installed by default
+================================================================================
+
+SAM 3 — Meta Platforms, Inc.
+    SAM License (custom; NOT an OSI-approved open source licence)
+    <https://github.com/facebookresearch/sam3>
+    Permits commercial use subject to field-of-use restrictions.
+    Reached only through the optional `sam3` extra. See
+    LICENSE-EXCEPTIONS for the GPL-3.0 section 7 permission that makes
+    the optional backend distributable, and README.md for what to use
+    instead if you would rather not install it.

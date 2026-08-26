@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Backend protocol and registry.
 
 Every backend takes a uint8 HxWx3 image and returns Detections in *pixel*
@@ -33,6 +35,25 @@ class Backend(Protocol):
 
 class UnsupportedTask(NotImplementedError):
     """Raised when a backend is asked for a task it does not implement."""
+
+
+def require(module: str, extra: str):
+    """Import an optional dependency, or explain how to install it.
+
+    Backends import their heavy dependencies inside load() so the core package
+    stays importable without any of them. The cost is that a missing extra
+    surfaces as a bare ModuleNotFoundError at load time, which tells a new user
+    nothing. This turns it into the install command.
+    """
+    import importlib
+
+    try:
+        return importlib.import_module(module)
+    except ImportError as exc:
+        raise ImportError(
+            f"{module!r} is not installed, which the {extra!r} backend needs. "
+            f"Install it with:  pip install 'tseg[{extra}]'"
+        ) from exc
 
 
 class BaseBackend:

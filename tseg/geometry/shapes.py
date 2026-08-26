@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Turn a detection into a rectangle *and* a circle.
 
 Masks are a superset of both, so we always derive both and write them as
@@ -5,11 +7,8 @@ separate geometry columns -- the consumer picks. Backends that only produce
 boxes (DeepForest) pass mask=None and everything falls back to the bbox.
 
 calc_rectangle_bbox / calc_circle_bbox are the *ingest* direction: labelme
-shapes drawn by hand in the review UI -> bbox. Both are ported from
-urban-tree/urbantree/deepforest/detection.py:55-111. Only these two functions
-are ported; the surrounding module targets the old DeepForest API
-(use_release(), config['score_thresh']) and will not run against the installed
-deepforest 2.1.0.
+shapes drawn by hand in the review UI -> bbox. See their own attribution note
+below; the rest of this module is original.
 """
 
 from __future__ import annotations
@@ -125,6 +124,21 @@ def passes_size_filter(bbox, min_size: float, min_ratio: float) -> bool:
 
 
 # ------------------------------------------------------- labelme ingest path
+#
+# distance(), calc_rectangle_bbox() and calc_circle_bbox() below are ported
+# from urban-tree, urbantree/deepforest/detection.py lines 55-111, with
+# modifications (reformatting, type hints, docstrings).
+#
+#     Copyright (c) 2022 easz@github
+#     Licensed under the MIT License
+#     https://github.com/easz/urban-tree
+#
+# The MIT notice is retained as that licence requires. Only these three
+# functions are ported: the surrounding upstream module targets the old
+# DeepForest API (use_release(), config['score_thresh']) and does not run
+# against the installed deepforest 2.1.0.
+
+
 def distance(points) -> float:
     """Distance between two points, [[x1, y1], [x2, y2]]."""
     p1, p2 = points

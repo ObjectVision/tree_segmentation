@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Read the pre-tseg tile cache.
 
 The original deepforest_province.py wrote one GeoJSON FeatureCollection per

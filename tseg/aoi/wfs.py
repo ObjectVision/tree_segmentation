@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Minimal WFS 2.0 GetFeature helper shared by the AOI sources."""
 
 from __future__ import annotations

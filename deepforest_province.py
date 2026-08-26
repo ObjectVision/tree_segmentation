@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Batch DeepForest tree detection over a selection of 'bestuurlijke gebieden'.
 
 This is now a thin shim over the tseg package. The CLI flags, the tile cache
@@ -89,7 +91,7 @@ def main():
     cache = TileCache(out_dir)
     n = 0
     with open_writer(merged, "geojson", shapes=("bbox",),
-                     layer_name=args.name) as w:
+                     layer_name=args.name, profile=profile) as w:
         if args.dedupe > 0:
             from tseg.geometry.dedupe import nms
 

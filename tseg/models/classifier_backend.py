@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Chip classifier -- the riet (thatched roof) path.
 
 Why a classifier and not a detector. BAG already gives the footprint, so the
@@ -28,9 +30,18 @@ from pathlib import Path
 
 import numpy as np
 
-from tseg.models.base import BaseBackend
+from tseg.models.base import BaseBackend, require
 
 DEFAULT_BACKBONE = "vit_small_patch14_dinov2.lvd142m"
+
+
+def _patch_size(model):
+    """Patch edge in pixels for a ViT, or None for architectures without one."""
+    pe = getattr(model, "patch_embed", None)
+    ps = getattr(pe, "patch_size", None) if pe is not None else None
+    if isinstance(ps, (tuple, list)):
+        return int(ps[0])
+    return int(ps) if ps else None
 
 
 class ClassifierBackend(BaseBackend):
@@ -51,7 +62,7 @@ class ClassifierBackend(BaseBackend):
 
     # ------------------------------------------------------------------ load
     def load(self, weights=None, device=None):
-        import timm
+        timm = require("timm", "classifier")
         import torch
 
         from tseg.device import torch_device
@@ -59,13 +70,34 @@ class ClassifierBackend(BaseBackend):
         self._device = device or "cpu"
         dev = torch_device(self._device)
 
-        self.backbone = timm.create_model(
-            self.backbone_name, pretrained=True, num_classes=0,
-        )
-        # DINOv2 uses patch 14, so not every input size is legal; take the
-        # config the checkpoint was trained with and override only the size.
+        # DINOv2 bakes img_size=518 into patch_embed and asserts on it, so the
+        # model has to be BUILT at the size we intend to feed it -- overriding
+        # only the transform gives a shape assertion deep inside the forward
+        # pass. Patch 14 also means the size must be a multiple of 14, and 224
+        # (14x16) is both legal and far cheaper than 518.
+        probe = timm.create_model(self.backbone_name, pretrained=False,
+                                  num_classes=0)
+        patch = _patch_size(probe)
+        size = self.resolution
+        if patch:
+            size = max(patch, int(round(self.resolution / patch)) * patch)
+            if size != self.resolution:
+                print(f"resolution {self.resolution} is not a multiple of the "
+                      f"patch size {patch}; using {size}")
+        self.resolution = size
+
+        try:
+            self.backbone = timm.create_model(
+                self.backbone_name, pretrained=True, num_classes=0,
+                img_size=size, dynamic_img_size=True,
+            )
+        except TypeError:
+            # Not every architecture takes img_size (CNNs do not need it).
+            self.backbone = timm.create_model(
+                self.backbone_name, pretrained=True, num_classes=0)
+
         cfg = timm.data.resolve_model_data_config(self.backbone)
-        cfg["input_size"] = (3, self.resolution, self.resolution)
+        cfg["input_size"] = (3, size, size)
         self.transform = timm.data.create_transform(**cfg, is_training=False)
 
         self.backbone.eval().to(dev)

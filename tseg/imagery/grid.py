@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """RD (EPSG:28992) tile grid over an AOI.
 
 Ported from ``deepforest_province.py:100-115``, with one addition: tiles can

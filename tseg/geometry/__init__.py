@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Shape derivation (rect + circle), px<->RD georeferencing, cross-tile NMS."""
 
 from tseg.geometry.dedupe import nms

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """Chip rendering for the review UI.
 
 A chip is a crop of the tile around one candidate, with the model geometry

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """DeepForest backend -- the frozen baseline.
 
 Kept so the finetuned RF-DETR can be measured against the run that produced
@@ -16,7 +18,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from tseg.models.base import BaseBackend
+from tseg.models.base import BaseBackend, require
 from tseg.records import Detection
 
 
@@ -32,7 +34,7 @@ class DeepForestBackend(BaseBackend):
         self.model = None
 
     def load(self, weights=None, device=None):
-        from deepforest import main
+        main = require("deepforest.main", "deepforest")
 
         self.model = main.deepforest()
         self.model.load_model(weights or "weecology/deepforest-tree")

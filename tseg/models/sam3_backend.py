@@ -1,13 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """SAM 3 backend -- zero-shot label bootstrapping only.
 
 Purpose is narrow: give round 0 of the review loop something to triage instead
 of a blank canvas. SAM 3 is never trained here. Its masks become annotations in
 the review store, you accept or reject them, and RF-DETR trains on the result.
 
-Licensing note: SAM 3 ships under Metas custom SAM License, not an OSI
-licence. It permits commercial use with restrictions. It is used here at
-inference time to pre-label your own imagery, and the resulting annotations are
-your data -- but confirm that reading before this reaches production.
+LICENCE WARNING. SAM 3 ships under Meta's custom SAM License. That licence
+carries field-of-use restrictions, so it is NOT an OSI-approved open source
+licence, and it is not GPL-compatible. This module exists only because
+LICENSE-EXCEPTIONS grants a GPL-3.0 section 7 permission to link with it.
+
+Nothing in tseg depends on this backend. Tree bootstrapping uses DeepForest
+(MIT) and rare-class mining uses DINOv2 embeddings (Apache-2.0), both fully
+open source. Reach for SAM 3 only when you need open-vocabulary prompting for
+a class neither of those covers, and confirm the licence terms yourself before
+it reaches production.
 
 Prefers samgeo (SamGeo3) when installed, since it already handles geospatial
 rasters; falls back to HuggingFace transformers otherwise.
@@ -15,12 +23,22 @@ rasters; falls back to HuggingFace transformers otherwise.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 from tseg.models.base import BaseBackend
 from tseg.records import Detection
 
 MIN_MASK_PX = 16
+
+LICENCE_WARNING = (
+    "SAM 3 is licensed under Meta's custom SAM License, which has field-of-use "
+    "restrictions and is NOT an OSI-approved open source licence. tseg links to "
+    "it under the GPL-3.0 section 7 permission in LICENSE-EXCEPTIONS. Nothing "
+    "requires this backend -- use 'deepforest' to bootstrap trees or 'tseg mine' "
+    "for rare classes if you would rather stay fully open source."
+)
 
 
 class SAM3Backend(BaseBackend):
@@ -36,6 +54,9 @@ class SAM3Backend(BaseBackend):
         self._device = "cpu"
 
     def load(self, weights=None, device=None):
+        # Warned on load, not on import: importing the module is harmless, but
+        # actually pulling the weights is the moment the licence applies.
+        warnings.warn(LICENCE_WARNING, stacklevel=2)
         self._device = device or "cpu"
         torch_device = "cuda" if self._device in ("cuda", "hip") else "cpu"
 

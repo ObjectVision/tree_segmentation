@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """SQLite annotation store -- the single source of truth for the loop.
 
 Every candidate the pipeline produces lands here, gets a verdict from you, and

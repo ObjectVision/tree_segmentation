@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Object Vision B.V. and tseg contributors
 """The one record type that flows through the whole pipeline.
 
 Backend -> Detection (pixel space, tile-local)
