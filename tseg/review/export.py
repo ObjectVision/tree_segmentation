@@ -254,13 +254,16 @@ def export_chips(store: ReviewStore, out_dir, classes=None):
 
     out_dir = Path(out_dir)
     counts: dict[str, int] = {}
+    dropped = 0
     for split in ("train", "valid"):
         rows = store.labelled(holdout=(split == "valid"), source="pand")
         for row in rows:
             label = store.training_label(row)
             if label is None:
-                # A rejected pand classification means "not this class"; without
-                # a corrected label there is nothing to learn from it.
+                # A bare reject carries no class. In the review UI a corrected
+                # chip is stored as a relabel precisely so this branch stays
+                # rare; if it is not rare, corrections are being lost.
+                dropped += 1
                 continue
             if classes and label not in classes:
                 continue
@@ -272,5 +275,19 @@ def export_chips(store: ReviewStore, out_dir, classes=None):
             shutil.copy2(src, dst_dir / Path(src).name)
             key = f"{split}/{label}"
             counts[key] = counts.get(key, 0) + 1
+    if dropped:
+        print(f"WARNING: {dropped} reviewed chip(s) had no class and were "
+              f"dropped. A classifier learns nothing from a bare reject -- in "
+              f"the review UI, correct a chip by unticking it and naming its "
+              f"real class rather than only rejecting it.")
+
+    train_classes = {k.split("/", 1)[1] for k in counts if k.startswith("train/")}
+    if len(train_classes) < 2:
+        raise SystemExit(
+            f"training chips cover only {sorted(train_classes) or 'no'} class(es). "
+            f"A classifier needs at least two: review more panden, and make sure "
+            f"negatives are being saved with their class, not rejected."
+        )
+
     print(json.dumps(counts, indent=2))
     return counts

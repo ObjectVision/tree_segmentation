@@ -136,6 +136,14 @@ def _train_classifier(profile, store, rdir, device_name, epochs, resume,
         chips.append(np.asarray(Image.open(path).convert("RGB")))
         labels.append(label)
 
+    present = sorted(set(labels))
+    if len(present) < 2:
+        raise SystemExit(
+            f"labelled chips cover only {present or 'no'} class(es); a "
+            f"classifier cannot learn a decision boundary from one class. "
+            f"In 'tseg review', untick the chips the model got wrong and name "
+            f"their real class -- that is what records the negatives."
+        )
     if len(chips) < 2 * len(profile.model.classes):
         raise SystemExit(
             f"only {len(chips)} labelled chips for {len(profile.model.classes)} "
@@ -172,14 +180,21 @@ def _train_classifier(profile, store, rdir, device_name, epochs, resume,
         metrics["holdout_accuracy"] = float(
             sum(p == t for p, t in zip(preds, truth)) / len(truth))
         metrics["holdout_n"] = len(truth)
-        metrics["holdout_per_class"] = {
-            c: {
-                "n": sum(1 for t in truth if t == c),
-                "recall": (sum(1 for p, t in zip(preds, truth) if t == c and p == t)
-                           / max(1, sum(1 for t in truth if t == c))),
-            }
-            for c in profile.model.classes
-        }
+        # Recall is None, not 0.0, for a class with no holdout examples:
+        # reporting zero there reads as total failure when it means no data.
+        per_class = {}
+        for c in profile.model.classes:
+            n = sum(1 for t in truth if t == c)
+            hits = sum(1 for p, t in zip(preds, truth) if t == c and p == t)
+            per_class[c] = {"n": n, "recall": (hits / n) if n else None}
+        metrics["holdout_per_class"] = per_class
+
+        thin = [c for c, v in per_class.items() if v["n"] < 5]
+        if thin:
+            metrics["warning"] = (
+                f"holdout has fewer than 5 examples of {thin}; per-class recall "
+                f"for those is noise, not a measurement"
+            )
 
     out = rdir / "train"
     out.mkdir(parents=True, exist_ok=True)

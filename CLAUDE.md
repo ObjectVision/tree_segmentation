@@ -1,0 +1,1 @@
+Use ROBOTS.md as content for CLAUDE.md

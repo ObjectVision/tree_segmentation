@@ -10,7 +10,9 @@ imagery:
   fmt: image/png              # lossless; JPEG artefacts look like thatch grain
 
 grid:
-  tile_m: 500
+  # Cells are the unit of caching and of --limit, which rounds up to a whole
+  # cell. 250 m keeps that overshoot to a few dozen panden in dense areas.
+  tile_m: 250
   overlap_m: 0                # pand mode crops per footprint, not per tile
 
 model:

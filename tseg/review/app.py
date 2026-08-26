@@ -65,6 +65,7 @@ def build_app(profile, out_root, store_path=None):
     rows, cols = profile.review.rows, profile.review.cols
     page_size = rows * cols
     classes = list(profile.model.classes)
+    is_classifier = profile.model.backend == "classifier"
 
     state = {"page": [], "last": []}
 
@@ -112,19 +113,39 @@ def build_app(profile, out_root, store_path=None):
                 f"accept {s['accept']} / reject {s['reject']} / "
                 f"relabel {s['relabel']} - holdout {s['holdout']} (never shown)")
 
-    def submit(picked, relabel_to):
+    def submit(picked, correction):
         batch = state["page"]
         if not batch:
             return load_page()
 
         kept = {int(p.split(".", 1)[0]) - 1 for p in (picked or [])}
+
+        # Verdict semantics differ by task, and getting this wrong throws away
+        # labels silently.
+        #
+        # Detection: an unticked box is a false positive. There is no "correct"
+        # box hiding behind it, so REJECT is the truth, and the tile still
+        # exports as a hard negative.
+        #
+        # Classification: the object exists either way -- only the class is
+        # wrong. REJECT would mean "not this class", which for three classes
+        # says nothing usable, and export_chips drops it. So an unticked chip
+        # is a CORRECTION: it carries the class named in the dropdown. That way
+        # one page yields confirmations and corrections, and nothing is lost.
+        if is_classifier and not correction:
+            return (*load_page()[:3],
+                    "**pick what the unticked cells actually are** before "
+                    "submitting - otherwise those corrections cannot be saved")
+
         pairs, ids = [], []
         for i, row in enumerate(batch):
             if i in kept:
-                if relabel_to and relabel_to != row["pred_label"]:
-                    pairs.append((row["id"], RELABEL, relabel_to))
+                if correction and not is_classifier and correction != row["pred_label"]:
+                    pairs.append((row["id"], RELABEL, correction))
                 else:
                     pairs.append((row["id"], ACCEPT, row["pred_label"]))
+            elif is_classifier:
+                pairs.append((row["id"], RELABEL, correction))
             else:
                 pairs.append((row["id"], REJECT, None))
             ids.append(row["id"])
@@ -204,17 +225,27 @@ def build_app(profile, out_root, store_path=None):
 
         with gr.Tab("Triage"):
             gr.Markdown(
-                "Cells are **accepted by default**. Untick the wrong ones and "
-                "submit. Keys: `1-9` toggle - `a` all - `r` none - "
-                "`u` undo page - `Enter` submit."
+                ("Cells are **confirmed by default**. Untick the ones the model "
+                 "got wrong, say what they actually are, and submit - the "
+                 "ticked ones are saved as confirmations, the unticked ones as "
+                 "corrections. Nothing is discarded."
+                 if is_classifier else
+                 "Cells are **accepted by default**. Untick the false positives "
+                 "and submit; they are kept as hard negatives.")
+                + " Keys: `1-9` toggle - `a` all - `r` none - "
+                  "`u` undo page - `Enter` submit."
             )
             sheet = gr.Image(label="candidates", height=640,
                              show_download_button=False, interactive=False)
             picks = gr.CheckboxGroup(label="keep", choices=[], value=[],
                                      elem_id="tseg-picks")
             with gr.Row():
-                relabel = gr.Dropdown(label="relabel kept cells as",
-                                      choices=[""] + classes, value="")
+                relabel = gr.Dropdown(
+                    label=("unticked cells are actually" if is_classifier
+                           else "relabel kept cells as"),
+                    choices=classes if is_classifier else [""] + classes,
+                    value=(classes[0] if is_classifier and classes else ""),
+                )
                 btn_all = gr.Button("all", elem_id="tseg-all")
                 btn_none = gr.Button("none", elem_id="tseg-none")
                 btn_undo = gr.Button("undo page", elem_id="tseg-undo")

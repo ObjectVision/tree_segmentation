@@ -1,0 +1,1 @@
+Never interact with git

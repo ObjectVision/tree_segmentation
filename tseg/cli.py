@@ -92,7 +92,9 @@ def parse_args(argv=None):
     p.add_argument("--round", type=int, default=0, help="round number for the store")
 
     p = _aoi(_common(sub.add_parser("pand", help="BAG pand-level classification")))
-    p.add_argument("--limit", type=int, default=0, help="cap panden this run")
+    p.add_argument("--limit", type=int, default=0,
+                   help="stop after this many panden, rounded UP to the end of "
+                        "the current grid cell (cells are cached whole)")
     p.add_argument("--to-store", action="store_true")
     p.add_argument("--round", type=int, default=0)
 

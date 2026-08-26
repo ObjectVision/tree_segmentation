@@ -275,11 +275,17 @@ def run_panden(profile, aoi, out_root, max_panden: int = 0,
                 },
             ))
             total += 1
-            if max_panden and total >= max_panden:
-                break
 
+        # The limit is checked at a CELL boundary, never inside one. A cell is
+        # cached as a unit, so stopping half way would either lose the work or
+        # mark the cell finished with panden missing -- and the next run would
+        # skip them forever. Finishing the cell overshoots the limit slightly,
+        # which is the harmless failure.
         cache.write(tile.key, feats)
         if max_panden and total >= max_panden:
+            if tile is not grid[-1]:
+                print(f"stopping after cell {tile.key}: {total} panden "
+                      f"(--limit {max_panden} reached at a cell boundary)")
             break
 
     print(f"classified {total} panden")
