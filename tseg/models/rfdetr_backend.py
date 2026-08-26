@@ -7,8 +7,8 @@ loop actually trains: detection and segmentation share one training API, and
 the seg checkpoints (Nano through 2XL) are all permissively licensed, which is
 why this and not Ultralytics YOLO26 (AGPL-3.0).
 
-Size guidance for the RX 9060 XT: 8 GB -> Small at 640 px with gradient
-accumulation; 16 GB -> Medium.
+Size guidance by VRAM, not by card: 8 GB -> Small at 640 px with gradient
+accumulation; 16 GB (RX 7900 GRE, RX 9060 XT 16 GB) -> Medium.
 """
 
 from __future__ import annotations

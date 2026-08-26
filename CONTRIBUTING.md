@@ -14,8 +14,9 @@ before it, `torch`'s `c10.dll` fails with `WinError 1114`. `tseg/__init__.py`
 imports `torch` before anything else for the same reason — do not move it.
 
 For GPU work see the README: AMD needs a separate Python **3.12** environment,
-because AMD's Windows ROCm wheel is published only for ROCm 7.2.1 / PyTorch 2.9
-/ Python 3.12.
+because AMD's Windows ROCm wheels are published only for ROCm 7.2.1 / PyTorch
+2.9 / Python 3.12. The wheel index is per-GPU-architecture (gfx1100 for RDNA3,
+gfx1200 for RDNA4) — the README has the table.
 
 ## Tests
 

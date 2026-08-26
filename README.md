@@ -23,14 +23,32 @@ The repo spans two environments on purpose.
 | `.venv` | 3.14 | 2.12 **+cpu** | the original CPU pipeline, unchanged |
 | `.venv-gpu` | **3.12** | **2.9 + ROCm 7.2.1** | GPU inference and all training |
 
-The Python 3.12 pin is not a preference. The RX 9060 XT is gfx1200 (RDNA4) and
-AMD's Windows ROCm wheel is published only for ROCm 7.2.1 / PyTorch 2.9 /
-Python 3.12. Python 3.14 has no ROCm build.
+The Python 3.12 pin is not a preference. AMD's Windows ROCm wheels are
+published only for ROCm 7.2.1 / PyTorch 2.9 / Python 3.12. Python 3.14 has no
+ROCm build.
+
+**Pick the wheel index that matches your GPU's architecture.** The index is
+per-architecture, not per-card: a gfx120X wheel carries no kernels for a
+gfx110X card and fails at the first HIP launch even though the card itself is
+perfectly capable.
+
+| GPU | Arch | Wheel index |
+|---|---|---|
+| RX 7900 GRE / XT / XTX, 7800 XT | gfx1100 (RDNA3) | `https://rocm.nightlies.amd.com/v2/gfx110X-dgpu/` |
+| RX 9060 XT, 9070 | gfx1200 (RDNA4) | `https://rocm.nightlies.amd.com/v2/gfx120X-all/` |
+
+If unsure, read the PCI device ID — `0x744C` is Navi 31 (gfx1100):
+
+```powershell
+Get-CimInstance Win32_VideoController | Select-Object Name, PNPDeviceID
+```
 
 ```powershell
 py -3.12 -m venv .venv-gpu
 .venv-gpu\Scripts\activate
-pip install --index-url https://rocm.nightlies.amd.com/v2/gfx120X-all/ torch torchvision
+# gfx1100 — RX 7900 GRE and the other RDNA3 dGPUs:
+pip install --index-url https://rocm.nightlies.amd.com/v2/gfx110X-dgpu/ torch torchvision
+# gfx1200 — RDNA4: use https://rocm.nightlies.amd.com/v2/gfx120X-all/ instead
 pip install -e ".[rfdetr,sam3,classifier,review,train]"
 ```
 
@@ -39,8 +57,12 @@ Check it landed on the GPU — ROCm reports through the `cuda` namespace, so
 
 ```
 tseg info
-# device: hip (torch 2.9.x, AMD Radeon RX 9060 XT, 16.0 GB VRAM, HIP 7.2.1)
+# device: hip (torch 2.9.x, AMD Radeon RX 7900 GRE, 16.0 GB VRAM, HIP 7.2.1)
 ```
+
+If `tseg info` says `cpu`, or a kernel dies with `invalid device function`, the
+wheel's architecture does not match the card. Reinstall torch from the other
+index before suspecting the model code.
 
 CPU-only setup, for the existing pipeline:
 

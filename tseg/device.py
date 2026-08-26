@@ -5,7 +5,12 @@
 The repo has to span two environments:
 
   * ``.venv``     Python 3.14 / torch 2.12+cpu  - the original CPU pipeline.
-  * ``.venv-gpu`` Python 3.12 / torch 2.9 ROCm 7.2.1 - the RX 9060 XT (gfx1200).
+  * ``.venv-gpu`` Python 3.12 / torch 2.9 ROCm 7.2.1 - any supported Radeon.
+
+The ROCm wheel is architecture-specific: gfx1100 (RDNA3, e.g. RX 7900 GRE) and
+gfx1200 (RDNA4, e.g. RX 9060 XT) install from different indexes and are not
+interchangeable. See the README install table. Nothing below depends on which
+one is in use.
 
 ROCm reports itself through the ``torch.cuda`` namespace, so ``is_available()``
 is True on both NVIDIA and AMD; ``torch.version.hip`` is what tells them apart.
