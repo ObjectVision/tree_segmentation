@@ -1,0 +1,44 @@
+# Thatched-roof (riet) classification per BAG pand.
+#
+# Thatch is a *texture* class: 25 cm destroys the signal, so this profile runs
+# on the 8 cm high-res ortho. Geometry comes from the BAG footprint, so the
+# model is a chip classifier, not a detector.
+name: riet
+
+imagery:
+  layer: Actueel_orthoHR      # ~0.08 m/px
+  fmt: image/png              # lossless; JPEG artefacts look like thatch grain
+
+grid:
+  tile_m: 500
+  overlap_m: 0                # pand mode crops per footprint, not per tile
+
+model:
+  backend: classifier
+  weights: vit_small_patch14_dinov2.lvd142m   # frozen backbone + linear head
+  classes: [overig, riet, partial]
+  score_thresh: 0.5
+  resolution: 224
+
+shapes:
+  circle_method: equal_area
+
+bag:
+  pad_m: 2.0
+  min_area_m2: 20.0
+  status: Pand in gebruik
+  mask_mode: soft             # hard cuts the eave/ridge line, which is
+  mask_dim: 0.35              # diagnostic for thatch
+  chip_px: 224
+
+review:
+  rows: 4
+  cols: 6
+  sort: uncertainty
+
+train:
+  epochs: 40
+  batch_size: 32
+  grad_accum: 1
+  lr: 0.001                   # linear head on frozen features wants a high lr
+  val_fraction: 0.2

@@ -1,0 +1,39 @@
+# Tree crowns from 25 cm leaf-on RGB. Matches the original
+# deepforest_province.py run so results stay comparable.
+name: trees
+
+imagery:
+  layer: Actueel_ortho25      # 0.25 m/px
+  fmt: image/jpeg
+
+grid:
+  tile_m: 500
+  overlap_m: 25               # ~one crown; set 0 to reproduce the old output
+
+model:
+  backend: deepforest         # swap to rfdetr once round 1 is trained
+  classes: [tree]
+  score_thresh: 0.2
+  nms_iou: 0.15
+  dedupe_iou: 0.4
+  patch: 400                  # 100 m at 25 cm
+  patch_overlap: 0.25
+  resolution: 640
+  prompt: tree                # used when backend: sam3
+
+shapes:
+  circle_method: equal_area
+  min_bbox_size: 8            # px at 25 cm -> 2 m
+  min_bbox_ratio: 0.2
+
+review:
+  rows: 4
+  cols: 6
+  sort: uncertainty
+
+train:
+  epochs: 30
+  batch_size: 4
+  grad_accum: 4
+  lr: 0.0001
+  val_fraction: 0.2

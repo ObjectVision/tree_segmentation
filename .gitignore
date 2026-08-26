@@ -1,1 +1,8 @@
 output/
+__pycache__/
+lightning_logs/
+.venv*/
+data/rounds/
+*.ckpt
+*.pth
+*.egg-info/

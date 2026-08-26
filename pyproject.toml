@@ -1,0 +1,36 @@
+[project]
+name = "tseg"
+version = "0.1.0"
+description = "Finetunable aerial-object segmentation over PDOK imagery (trees, roof material)"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pillow",
+    "rasterio",
+    "shapely",
+    "pyproj",
+    "geopandas",
+    "pyogrio",
+    "opencv-python",
+    "pyyaml",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+# Backends are optional so the core package installs in both venvs.
+deepforest = ["deepforest>=2.1.0"]
+rfdetr = ["rfdetr", "supervision"]
+sam3 = ["segment-geospatial", "transformers"]
+classifier = ["timm", "scikit-learn"]
+review = ["gradio>=4"]
+train = ["pycocotools"]
+
+[project.scripts]
+tseg = "tseg.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tseg*"]
